@@ -54,6 +54,49 @@ def demo_werner2_kext_boundary():
     # 65536 0.50034  NA       NA
 
 
+def _ax_plot(ax, data_dict, alpha_boundary, axin_xticks, title=None):
+    alpha_list = data_dict['alpha_list']
+    kext_list = data_dict['kext_list']
+    ree_pureb = data_dict['ree_pureb']
+    ree_analytical = data_dict['ree_analytical']
+    ree_ppt = data_dict['ree_ppt']
+    ree_cha = data_dict['ree_cha']
+
+    for ind0 in range(len(kext_list)):
+        ax.plot(alpha_list, ree_pureb[ind0], color=tableau[ind0+3], label=f'PureB({kext_list[ind0]})')
+    ax.plot(alpha_list, ree_analytical, ':', color=tableau[0], markersize=3, label='analytical', markerfacecolor='none')
+    ax.plot(alpha_list, ree_ppt, '+', color=tableau[1], label='PPT')
+    ax.plot(alpha_list, ree_cha, 'x', color=tableau[2], label='CHA')
+    ax.legend(ncol=2, fontsize=12, loc='upper left')
+    ax.set_xlim(0, 1)
+    ax.set_xlabel(r'$\alpha$', fontsize=12)
+    ax.set_ylabel('REE', fontsize=12)
+    ax.tick_params(axis='both', which='major', labelsize=11)
+    if title is not None:
+        ax.set_title(title)
+
+    alpha_fine_list = data_dict['alpha_fine_list']
+    ree_pureb_fine = data_dict['ree_pureb_fine']
+    ree_fine_ppt = data_dict['ree_fine_ppt']
+    ree_fine_analytical = data_dict['ree_fine_analytical']
+    ree_fine_cha = data_dict['ree_fine_cha']
+    axin = ax.inset_axes([0.1, 0.24, 0.47, 0.47])
+
+    for ind0 in range(len(kext_list)):
+        axin.plot(alpha_fine_list, ree_pureb_fine[ind0], color=tableau[ind0+3])
+    axin.plot(alpha_fine_list, ree_fine_analytical, ':', color=tableau[0], markersize=3, markerfacecolor='none')
+    tmp0 = ree_fine_ppt.copy()
+    tmp0[alpha_fine_list<alpha_boundary] = np.nan
+    axin.plot(alpha_fine_list, tmp0, '+', color=tableau[1])
+    axin.plot(alpha_fine_list, ree_fine_cha, 'x', color=tableau[2])
+    axin.set_xlim(alpha_fine_list[0], alpha_fine_list[-1])
+    axin.set_yscale('log')
+    axin.tick_params(axis='both', which='major', labelsize=11)
+    axin.set_xticks(axin_xticks)
+    hrect,hpatch = ax.indicate_inset_zoom(axin, edgecolor="red")
+    hrect.set_xy((hrect.get_xy()[0], -0.02))
+    hrect.set_height(0.05)
+
 def demo_werner3_ree():
     dim = 3
 
@@ -61,10 +104,9 @@ def demo_werner3_ree():
     alpha_list = np.linspace(0, 1, 50, endpoint=True) #alpha=1 is unstable for analytical
     if dim==2:
         alpha_fine_list = np.linspace(alpha_boundary*0.95, min(1,alpha_boundary*1.2), 50)#dim=2
-    elif dim==3:
-        alpha_fine_list = np.linspace(alpha_boundary*0.95, min(1,alpha_boundary*1.4), 50)#dim=3
     else:
-        assert False
+        assert dim==3
+        alpha_fine_list = np.linspace(alpha_boundary*0.95, min(1,alpha_boundary*1.4), 50)#dim=3
 
     kext_list = [8, 16, 32, 64]
     kwargs = dict(num_repeat=3, tol=1e-10, print_every_round=0)
@@ -102,46 +144,23 @@ def demo_werner3_ree():
     tmp0 = np.stack([pyqet.entangle.get_werner_state(dim,x) for x in alpha_fine_list])
     ree_fine_ppt = pyqet.entangle.get_ppt_ree(tmp0, dim, dim, use_tqdm=True)
 
-    fig,ax = plt.subplots(figsize=(6.4, 4.8))
-    for ind0 in range(len(kext_list)):
-        ax.plot(alpha_list, ree_pureb[ind0], color=tableau[ind0+3], label=f'PureB({kext_list[ind0]})')
-    ax.plot(alpha_list, ree_analytical, ':', color=tableau[0], markersize=3, label='analytical', markerfacecolor='none')
-    ax.plot(alpha_list, ree_ppt, '+', color=tableau[1], label='PPT')
-    ax.plot(alpha_list, ree_cha, 'x', color=tableau[2], label='CHA')
-    ax.legend(ncol=2, fontsize=12, loc='upper left')
-    ax.set_xlim(0, 1)
-    ax.set_xlabel(r'$\alpha$', fontsize=12)
-    ax.set_ylabel('relative entropy of entanglement', fontsize=12)
-    ax.tick_params(axis='both', which='major', labelsize=11)
-
-    axin = ax.inset_axes([0.15, 0.24, 0.47, 0.47])
-    for ind0 in range(len(kext_list)):
-        axin.plot(alpha_fine_list, ree_pureb_fine[ind0], color=tableau[ind0+3])
-    axin.plot(alpha_fine_list, ree_fine_analytical, ':', color=tableau[0], markersize=3, markerfacecolor='none')
-    tmp0 = ree_fine_ppt.copy()
-    tmp0[alpha_fine_list<alpha_boundary] = np.nan
-    axin.plot(alpha_fine_list, tmp0, '+', color=tableau[1])
-    axin.plot(alpha_fine_list, ree_fine_cha, 'x', color=tableau[2])
-    axin.set_xlim(alpha_fine_list[0], alpha_fine_list[-1])
-    axin.set_yscale('log')
-    axin.tick_params(axis='both', which='major', labelsize=11)
-    if dim==3:
-        axin.set_xticks([0.33, 0.37, 0.41, 0.45])
-    elif dim==2:
-        axin.set_xticks([0.5, 0.54, 0.58])
-    hrect,hpatch = ax.indicate_inset_zoom(axin, edgecolor="red")
-    hrect.set_xy((hrect.get_xy()[0], -0.02))
-    hrect.set_height(0.05)
-    fig.tight_layout()
-    fig.savefig('tbd00.png', dpi=200)
-    # fig.savefig('data/werner3_ree.png', dpi=200)
-    # fig.savefig('data/werner3_ree.pdf')
-
     # with open('data/werner3_ree.pkl', 'wb') as fid:
     #     tmp0 = dict(alpha_list=alpha_list, kext_list=kext_list, ree_pureb=ree_pureb, ree_analytical=ree_analytical,
     #             ree_ppt=ree_ppt, ree_cha=ree_cha, alpha_fine_list=alpha_fine_list, ree_pureb_fine=ree_pureb_fine,
     #             ree_fine_analytical=ree_fine_analytical, ree_fine_ppt=ree_fine_ppt, ree_fine_cha=ree_fine_cha)
     #     pickle.dump(tmp0, fid)
+
+    with open('data/werner3_ree.pkl', 'rb') as fid:
+        data_dict = pickle.load(fid)
+    dim = 3
+    alpha_boundary = 1/dim
+    fig,ax = plt.subplots(figsize=(6.4, 4.8))
+    axin_xticks = [0.33, 0.37, 0.41, 0.45] if (dim==3) else [0.5, 0.54, 0.58]
+    _ax_plot(ax, data_dict, alpha_boundary, axin_xticks)
+    fig.tight_layout()
+    fig.savefig('tbd00.png', dpi=200)
+    # fig.savefig('data/werner3_ree.png', dpi=200)
+    # fig.savefig('data/werner3_ree.pdf')
 
 
 def demo_isotropic3_ree():
@@ -186,44 +205,23 @@ def demo_isotropic3_ree():
     ree_ppt = pyqet.entangle.get_ppt_ree(tmp0, dim, dim, use_tqdm=True)
     tmp0 = np.stack([pyqet.entangle.get_isotropic_state(dim,x) for x in alpha_fine_list])
     ree_fine_ppt = pyqet.entangle.get_ppt_ree(tmp0, dim, dim, use_tqdm=True)
-
-    fig,ax = plt.subplots(figsize=(6.4, 4.8))
-    for ind0 in range(len(kext_list)):
-        ax.plot(alpha_list, ree_pureb[ind0], color=tableau[ind0+3], label=f'PureB({kext_list[ind0]})')
-    ax.plot(alpha_list, ree_analytical, ':', color=tableau[0], markersize=3, label='analytical', markerfacecolor='none')
-    ax.plot(alpha_list, ree_ppt, '+', color=tableau[1], label='PPT')
-    ax.plot(alpha_list, ree_cha, 'x', color=tableau[2], label='CHA')
-    ax.legend(ncol=2, fontsize=12, loc='upper left')
-    ax.set_xlim(0, 1)
-    ax.set_xlabel(r'$\alpha$', fontsize=12)
-    ax.set_ylabel('relative entropy of entanglement', fontsize=12)
-    ax.tick_params(axis='both', which='major', labelsize=11)
-
-    axin = ax.inset_axes([0.1, 0.24, 0.47, 0.47])
-    for ind0 in range(len(kext_list)):
-        axin.plot(alpha_fine_list, ree_pureb_fine[ind0], color=tableau[ind0+3])
-    axin.plot(alpha_fine_list, ree_fine_analytical, ':', color=tableau[0], markersize=3, markerfacecolor='none')
-    tmp0 = ree_fine_ppt.copy()
-    tmp0[alpha_fine_list<alpha_boundary] = np.nan
-    axin.plot(alpha_fine_list, tmp0, '+', color=tableau[1])
-    axin.plot(alpha_fine_list, ree_fine_cha, 'x', color=tableau[2])
-    axin.set_xlim(alpha_fine_list[0], alpha_fine_list[-1])
-    axin.set_yscale('log')
-    axin.tick_params(axis='both', which='major', labelsize=11)
-    axin.set_xticks([0.25, 0.3, 0.35])
-    hrect,hpatch = ax.indicate_inset_zoom(axin, edgecolor="red")
-    hrect.set_xy((hrect.get_xy()[0], -0.02))
-    hrect.set_height(0.05)
-    fig.tight_layout()
-    fig.savefig('tbd00.png', dpi=200)
-    # fig.savefig('data/isotropic3_ree.png', dpi=200)
-    # fig.savefig('data/isotropic3_ree.pdf')
-
     # with open('data/isotropic3_ree.pkl', 'wb') as fid:
     #     tmp0 = dict(alpha_list=alpha_list, kext_list=kext_list, ree_pureb=ree_pureb, ree_analytical=ree_analytical,
     #             ree_ppt=ree_ppt, ree_cha=ree_cha, alpha_fine_list=alpha_fine_list, ree_pureb_fine=ree_pureb_fine,
     #             ree_fine_analytical=ree_fine_analytical, ree_fine_ppt=ree_fine_ppt, ree_fine_cha=ree_fine_cha)
     #     pickle.dump(tmp0, fid)
+
+    with open('data/isotropic3_ree.pkl', 'rb') as fid:
+        data_dict = pickle.load(fid)
+    dim = 3
+    alpha_boundary = 1/(dim+1)
+    fig,ax = plt.subplots(figsize=(6.4, 4.8))
+    axin_xticks = [0.25, 0.3, 0.35]
+    _ax_plot(ax, data_dict, alpha_boundary, axin_xticks)
+    fig.tight_layout()
+    fig.savefig('tbd00.png', dpi=200)
+    # fig.savefig('data/isotropic3_ree.png', dpi=200)
+    # fig.savefig('data/isotropic3_ree.pdf')
 
 
 def plot_werner3_isotropic3_ree():
@@ -234,92 +232,17 @@ def plot_werner3_isotropic3_ree():
 
     fig,(ax0,ax1) = plt.subplots(2,1,figsize=(6.4, 9.6))
 
-    alpha_list = data_figa['alpha_list']
-    kext_list = data_figa['kext_list']
-    ree_pureb = data_figa['ree_pureb']
-    ree_analytical = data_figa['ree_analytical']
-    ree_ppt = data_figa['ree_ppt']
-    ree_cha = data_figa['ree_cha']
-    for ind0 in range(len(kext_list)):
-        ax0.plot(alpha_list, ree_pureb[ind0], color=tableau[ind0+3], label=f'PureB({kext_list[ind0]})')
-    ax0.plot(alpha_list, ree_analytical, ':', color=tableau[0], markersize=3, label='analytical', markerfacecolor='none')
-    ax0.plot(alpha_list, ree_ppt, '+', color=tableau[1], label='PPT')
-    ax0.plot(alpha_list, ree_cha, 'x', color=tableau[2], label='CHA')
-    ax0.legend(ncol=2, fontsize=12, loc='upper left')
-    ax0.set_xlim(0, 1)
-    ax0.set_xlabel(r'$\alpha$', fontsize=12)
-    ax0.set_ylabel('REE', fontsize=12)
-    ax0.set_title(r'$3\otimes 3$ Werner state', fontsize=12)
-    ax0.tick_params(axis='both', which='major', labelsize=11)
-
     dim = 3
-    alpha_boundary = 1/(dim)
-    alpha_fine_list = data_figa['alpha_fine_list']
-    ree_pureb_fine = data_figa['ree_pureb_fine']
-    ree_fine_ppt = data_figa['ree_fine_ppt']
-    ree_fine_analytical = data_figa['ree_fine_analytical']
-    ree_fine_cha = data_figa['ree_fine_cha']
-    axin = ax0.inset_axes([0.15, 0.24, 0.47, 0.47])
-    for ind0 in range(len(kext_list)):
-        axin.plot(alpha_fine_list, ree_pureb_fine[ind0], color=tableau[ind0+3])
-    axin.plot(alpha_fine_list, ree_fine_analytical, ':', color=tableau[0], markersize=3, markerfacecolor='none')
-    tmp0 = ree_fine_ppt.copy()
-    tmp0[alpha_fine_list<alpha_boundary] = np.nan
-    axin.plot(alpha_fine_list, tmp0, '+', color=tableau[1])
-    axin.plot(alpha_fine_list, ree_fine_cha, 'x', color=tableau[2])
-    axin.set_xlim(alpha_fine_list[0], alpha_fine_list[-1])
-    axin.set_yscale('log')
-    axin.tick_params(axis='both', which='major', labelsize=11)
-    if dim==3:
-        axin.set_xticks([0.33, 0.37, 0.41, 0.45])
-    elif dim==2:
-        axin.set_xticks([0.5, 0.54, 0.58])
-    hrect,hpatch = ax0.indicate_inset_zoom(axin, edgecolor="red")
-    hrect.set_xy((hrect.get_xy()[0], -0.02))
-    hrect.set_height(0.05)
-
-
-    alpha_list = data_figb['alpha_list']
-    kext_list = data_figb['kext_list']
-    ree_pureb = data_figb['ree_pureb']
-    ree_analytical = data_figb['ree_analytical']
-    ree_ppt = data_figb['ree_ppt']
-    ree_cha = data_figb['ree_cha']
-    for ind0 in range(len(kext_list)):
-        ax1.plot(alpha_list, ree_pureb[ind0], color=tableau[ind0+3], label=f'PureB({kext_list[ind0]})')
-    ax1.plot(alpha_list, ree_analytical, ':', color=tableau[0], markersize=3, label='analytical', markerfacecolor='none')
-    ax1.plot(alpha_list, ree_ppt, '+', color=tableau[1], label='PPT')
-    ax1.plot(alpha_list, ree_cha, 'x', color=tableau[2], label='CHA')
-    ax1.legend(ncol=2, fontsize=12, loc='upper left')
-    ax1.set_xlim(0, 1)
-    ax1.set_xlabel(r'$\alpha$', fontsize=12)
-    ax1.set_ylabel('REE', fontsize=12)
-    ax1.set_title(r'$3\otimes 3$ Isotropic state', fontsize=12)
-    ax1.tick_params(axis='both', which='major', labelsize=11)
+    alpha_boundary = 1/dim
+    axin_xticks = [0.33, 0.37, 0.41, 0.45] if (dim==3) else [0.5, 0.54, 0.58]
+    title = r'$3\otimes 3$ Werner state'
+    _ax_plot(ax0, data_figa, alpha_boundary, axin_xticks, title)
 
     dim = 3
     alpha_boundary = 1/(dim+1)
-    alpha_fine_list = data_figb['alpha_fine_list']
-    ree_pureb_fine = data_figb['ree_pureb_fine']
-    ree_fine_ppt = data_figb['ree_fine_ppt']
-    ree_fine_analytical = data_figb['ree_fine_analytical']
-    ree_fine_cha = data_figb['ree_fine_cha']
-    axin = ax1.inset_axes([0.1, 0.24, 0.47, 0.47])
-    for ind0 in range(len(kext_list)):
-        axin.plot(alpha_fine_list, ree_pureb_fine[ind0], color=tableau[ind0+3])
-    axin.plot(alpha_fine_list, ree_fine_analytical, ':', color=tableau[0], markersize=3, markerfacecolor='none')
-    tmp0 = ree_fine_ppt.copy()
-    tmp0[alpha_fine_list<alpha_boundary] = np.nan
-    axin.plot(alpha_fine_list, tmp0, '+', color=tableau[1])
-    axin.plot(alpha_fine_list, ree_fine_cha, 'x', color=tableau[2])
-    axin.set_xlim(alpha_fine_list[0], alpha_fine_list[-1])
-    axin.set_yscale('log')
-    axin.tick_params(axis='both', which='major', labelsize=11)
-    axin.set_xticks([0.25, 0.3, 0.35])
-    hrect,hpatch = ax1.indicate_inset_zoom(axin, edgecolor="red")
-    hrect.set_xy((hrect.get_xy()[0], -0.02))
-    hrect.set_height(0.05)
-
+    axin_xticks = [0.25, 0.3, 0.35]
+    title = r'$3\otimes 3$ isotropic state'
+    _ax_plot(ax1, data_figb, alpha_boundary, axin_xticks, title)
     fig.tight_layout()
     fig.savefig('tbd00.png', dpi=200)
     # fig.savefig('data/werner3_isotropic3_ree.png', dpi=200)
@@ -332,7 +255,6 @@ def demo_purebQ_werner2_ree():
     alpha_boundary = 1/dim
     alpha_list = np.linspace(0, 1, 50)
     alpha_fine_list = np.linspace(alpha_boundary*0.95, min(1,alpha_boundary*1.34), 50)
-
 
     model = pyqet.entangle.AutodiffCHAREE(dim, dim, distance_kind='ree')
     kwargs = dict(num_repeat=3, tol=1e-10, print_every_round=0)
@@ -370,6 +292,11 @@ def demo_purebQ_werner2_ree():
     tmp0 = np.stack([pyqet.entangle.get_werner_state(dim,x) for x in alpha_fine_list])
     ree_fine_ppt = pyqet.entangle.get_ppt_ree(tmp0, dim, dim, use_tqdm=True)
 
+    # with open('data/purebQ_werner2_ree.pkl', 'wb') as fid:
+    #     tmp0 = dict(alpha_list=alpha_list, kext_layer_list=kext_layer_list, ree_purebQ=ree_purebQ, ree_analytical=ree_analytical,
+    #             ree_ppt=ree_ppt, ree_cha=ree_cha, alpha_fine_list=alpha_fine_list, ree_purebQ_fine=ree_purebQ_fine,
+    #             ree_fine_analytical=ree_fine_analytical, ree_fine_ppt=ree_fine_ppt, ree_fine_cha=ree_fine_cha)
+    #     pickle.dump(tmp0, fid)
 
     fig,ax = plt.subplots(figsize=(6.4, 4.8))
     for ind0 in range(len(kext_layer_list)):
@@ -404,12 +331,6 @@ def demo_purebQ_werner2_ree():
     fig.savefig('tbd00.png', dpi=200)
     # fig.savefig('data/purebQ_werner2_ree.png', dpi=200)
     # fig.savefig('data/purebQ_werner2_ree.pdf')
-
-    # with open('data/purebQ_werner2_ree.pkl', 'wb') as fid:
-    #     tmp0 = dict(alpha_list=alpha_list, kext_layer_list=kext_layer_list, ree_purebQ=ree_purebQ, ree_analytical=ree_analytical,
-    #             ree_ppt=ree_ppt, ree_cha=ree_cha, alpha_fine_list=alpha_fine_list, ree_purebQ_fine=ree_purebQ_fine,
-    #             ree_fine_analytical=ree_fine_analytical, ree_fine_ppt=ree_fine_ppt, ree_fine_cha=ree_fine_cha)
-    #     pickle.dump(tmp0, fid)
 
 
 def demo_cha_critical_point_N():
