@@ -1,5 +1,7 @@
 # Pureb-public
 
+[![DOI](https://zenodo.org/badge/647187177.svg)](https://zenodo.org/doi/10.5281/zenodo.12577418)
+
 🚀 Exciting News! We've launched the `numqi` package [github/numqi](https://github.com/husisy/numqi), combining all the functionalities of this repository and even more! 🌟 To dive into these features, just install `numqi` using `pip install numqi`, and explore the relevant functions within the `numqi.entangle` module. 🛠️
 
 ## Quick start
